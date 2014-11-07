@@ -1,33 +1,15 @@
 """
-Test file.
-
-
-@todo: Delete the earlier tests, and refactor/collapse files so decorators has only:  InnerClass, InnerClassTerminalMethod
-@todo: Consider refactoring InnerClassTerminalMethod into 2 decorators: @variantmethod + @instancepartialmethod
-
-@todo: Rename this to test_nested_class.py
-@todo: See if I can merge TerminalMethod/TerminalClassMethod
-@todo: See if TerminalClass can be made to remove need for TerminalClassMethod
+Test file, also containing a skeleton of the structure for Validator.
 """
 import os
 import unittest
 
-from decorators import (
-    InnerClass, InnerClassTerminalMethod,
-    TerminalClass, TerminalMethod
-)
-from treenode import TreeNode, TreeRoot
-
-
-
+from nestcls.decorators import InnerClass, TerminalMethod
+from nestcls.treenode import TreeNode, TreeRoot
 
 
 class Validator(TreeRoot):
     """Example of desired use-case"""
-    def __init__(self, *args, **kwargs):
-        self.args = args
-        self.kwargs = kwargs
-        super(Validator, self).__init__(None)
     @InnerClass
     class Assert(TreeNode):
         """Primary nested class."""
@@ -35,27 +17,25 @@ class Validator(TreeRoot):
         class Type(TreeNode):
             """Procedure-style nested class.
             Intended to be treated as a function."""
-            @InnerClassTerminalMethod
+            @TerminalMethod
             def __call__(self, instance, klass):
                 if not isinstance(instance, klass):
                     raise TypeError("Must be {0}".format(klass.__name__))
                 return instance
 
-        @InnerClassTerminalMethod
-        def IsDir(self, path):
+        @TerminalMethod
+        def IsDir(self, path): #pylint: disable=no-self-use, invalid-name
+            """Standard terminal method. Contrasts with Type (procedure-style)."""
             if not os.path.isdir(path):
                 raise ValueError("'path' is not a directory.")
             return path
 
 
 
-class InnerClassTerminalMethodTests(unittest.TestCase):
+class NestingTests(unittest.TestCase):
     """Nests using @InnerClass, and a special decorator for method calls."""
     def setUp(self):
         """Create nested class structure."""
-
-
-        self.validator = Validator
         self.string = "aaa"
         self.good_klass = basestring
         self.bad_klass = int
@@ -63,16 +43,16 @@ class InnerClassTerminalMethodTests(unittest.TestCase):
     def test_classmethod(self):
         """Accessing Validator as a classmethod."""
         self.assertEqual(
-            self.validator.Assert.Type(self.string, self.good_klass),
+            Validator.Assert.Type(self.string, self.good_klass),
             self.string
         )
         self.assertRaises(
             TypeError,
-            lambda: self.validator.Assert.Type(self.string, self.bad_klass)
+            lambda: Validator.Assert.Type(self.string, self.bad_klass)
         )
     def test_instancemethod(self):
         """Accessing Validator nested methods as instancemethods."""
-        val = self.validator(self.string)
+        val = Validator(self.string)
         self.assertEqual(
             val.Assert.Type(self.good_klass),
             self.string
@@ -82,29 +62,27 @@ class InnerClassTerminalMethodTests(unittest.TestCase):
             lambda: val.Assert.Type(self.bad_klass)
         )
 
-    def test_sideterminal(self):
-        self.assert_(self.validator.Assert.IsDir('/Users/'))
+    def test_terminalmethod(self):
+        """Test a terminal method, NOT a procedural-style function-class."""
+        self.assert_(Validator.Assert.IsDir('/Users/')) #pylint: disable=no-value-for-parameter
         self.assertRaises(
             ValueError,
-            lambda: self.validator.Assert.IsDir('/NonExistant/')
+            lambda: Validator.Assert.IsDir('/NonExistant/') #pylint: disable=no-value-for-parameter
         )
-        val = self.validator('/Users/')
-        self.assertEquals(val.Assert.IsDir(), '/Users/')
-         
-         
-         
-        val2 = self.validator('/NonExistant/') 
-         
-        print()
+        val = Validator('/Users/')
+        self.assertEquals(val.Assert.IsDir(), '/Users/') #pylint: disable=no-value-for-parameter
+
+        val2 = Validator('/NonExistant/')
         self.assertRaises(
             ValueError,
-            lambda: val2.Assert.IsDir()
+            lambda: val2.Assert.IsDir() #pylint: disable=no-value-for-parameter, unnecessary-lambda
         )
 
-    def test_instance_uniqueness_problem(self):
-        val1 = self.validator('aaa')
-        val2 = self.validator('bbb')
-        
+    def test_instance_uniqueness(self):
+        """Used to check for a previously encountered instance-uniqueness problem."""
+        val1 = Validator('aaa')
+        val2 = Validator('bbb')
+
         as1 = val1.Assert
         as2 = val2.Assert
 
